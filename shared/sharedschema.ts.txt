@@ -1,0 +1,79 @@
+=== shared/schema.ts ===
+import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  coins: integer("coins").notNull().default(0),
+  energy: integer("energy").notNull().default(1000),
+  maxEnergy: integer("max_energy").notNull().default(1000),
+  level: integer("level").notNull().default(1),
+  totalTaps: integer("total_taps").notNull().default(0),
+  coinsPerTap: integer("coins_per_tap").notNull().default(1),
+  referralCount: integer("referral_count").notNull().default(0),
+  referralEarnings: integer("referral_earnings").notNull().default(0),
+  referredBy: integer("referred_by"),
+  lastEnergyUpdate: timestamp("last_energy_update").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const tasks = pgTable("tasks", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  reward: integer("reward").notNull(),
+  icon: text("icon").notNull(),
+  type: text("type").notNull(), // "share", "tap", "join", etc.
+  target: integer("target"), // for progress-based tasks
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const userTasks = pgTable("user_tasks", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  taskId: integer("task_id").notNull(),
+  progress: integer("progress").notNull().default(0),
+  completed: boolean("completed").notNull().default(false),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const referrals = pgTable("referrals", {
+  id: serial("id").primaryKey(),
+  referrerId: integer("referrer_id").notNull(),
+  referredId: integer("referred_id").notNull(),
+  reward: integer("reward").notNull().default(1000),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertUserSchema = createInsertSchema(users).pick({
+  username: true,
+});
+
+export const insertTaskSchema = createInsertSchema(tasks).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserTaskSchema = createInsertSchema(userTasks).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export const insertReferralSchema = createInsertSchema(referrals).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type Task = typeof tasks.$inferSelect;
+export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type UserTask = typeof userTasks.$inferSelect;
+export type InsertUserTask = z.infer<typeof insertUserTaskSchema>;
+export type Referral = typeof referrals.$inferSelect;
+export type InsertReferral = z.infer<typeof insertReferralSchema>;
